@@ -378,27 +378,6 @@ def main():
             if event.type == pg.QUIT:
                 return 0
         
-        
-        if random.random() > 0.001:
-            print(nonplayer_rect_lst[0].center)
-        # #Boxをnonplayerlstにいれる
-        # for i in Box.boxes:
-        #     if  not i in nonplayer_rect_lst:
-        #         nonplayer_rect_lst.append(i.rect)
-        # #Bombをnonplayerlstにいれる
-        # for i in Bomb.bombs:
-        #     if  not i in nonplayer_rect_lst:
-        #         nonplayer_rect_lst.append(i.rect)
-        # #Explodeをnonplayerlstにいれる
-        # for i in Explode.explodes:
-        #     if  not i in nonplayer_rect_lst:
-        #         nonplayer_rect_lst.append(i.rect)
-        # #Throwをnonplayerlstにいれる
-        # for i in Throw_predict.predicts:
-        #     if  not i in nonplayer_rect_lst:
-        #         nonplayer_rect_lst.append(i.rect)
-        
-        
 
         key_lst = pg.key.get_pressed()
 
@@ -420,9 +399,9 @@ def main():
         
         # スクロール
         for r in nonplayer_rect_lst:
-            r.x -= player.vel[0]
+            r.x -= int(player.vel[0])
             if not player.is_ground:
-                r.y -= player.vel[1]
+                r.y -= int(player.vel[1])
 
         
         #毎フレーム落下するとして初期化
@@ -462,7 +441,7 @@ def main():
             if player.rect.bottom > b.rect.centery:
                 if player.vel[0] < 0:
                     for r in nonplayer_rect_lst:
-                        r.x += player.vel[0]
+                        r.x += int(player.vel[0])
                     player.vel[0] = 0
                 elif player.vel[0] > 0:
                     for r in nonplayer_rect_lst:
@@ -471,7 +450,7 @@ def main():
             # y方向
             if b.rect.left <= player.rect.centerx <= b.rect.right:
                 for r in nonplayer_rect_lst:
-                    r.y += player.vel[1]
+                    r.y += int(player.vel[1])
                 if player.vel[1] > 0:
                     player.is_ground = True
                 player.vel[1] = 0
@@ -503,7 +482,7 @@ def main():
             power_border = 4
             throw_arg[0] = -(explode_pos[0] - player_pos[0])/power_border + 0.001
             throw_arg[1] = -(explode_pos[1] - player_pos[1])/power_border + 0.001
-            print(throw_arg)
+            #print(throw_arg)
             player.vel[0] += throw_arg[0]
             player.vel[1] += throw_arg[1]
     
@@ -520,16 +499,16 @@ def main():
                 if player.rect.bottom > b.rect.centery:
                     if player.vel[0] < 0:
                         for r in nonplayer_rect_lst:
-                            r.x += player.vel[0]
+                            r.x += int(player.vel[0])
                         player.vel[0] = 0
                     elif player.vel[0] > 0:
                         for r in nonplayer_rect_lst:
-                            r.x += player.vel[0]
+                            r.x += int(player.vel[0])
                         player.vel[0] = 0
                 # y方向
                 if b.rect.left <= player.rect.centerx <= b.rect.right:
                     for r in nonplayer_rect_lst:
-                        r.y += player.vel[1]
+                        r.y += int(player.vel[1])
                     if player.vel[1] > 0:
                         player.is_ground = True
                     player.vel[1] = 0
