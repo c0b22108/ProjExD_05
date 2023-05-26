@@ -4,8 +4,8 @@ import pygame as pg
 
 WIDTH = 1024
 HEIGHT = 1024
-CAMERA_POS = (WIDTH // 2, HEIGHT - 200)
-
+#CAMERA_POS = (WIDTH // 2, HEIGHT - 200)
+VIEW_POS = (WIDTH // 2, HEIGHT - 200)
 dynamic_rect_lst = []
 
 class Player(pg.sprite.Sprite):
@@ -44,7 +44,7 @@ class Player(pg.sprite.Sprite):
         #Kodai marge
         self.gravity_acc = 1
         self.walk_acc = 2
-        self.walk_vel_max = 20
+        self.walk_vel_max = 10
         self.jump_init_vel = 20
         self.is_grounded = False
         self.acc = [0, 0]
@@ -58,10 +58,12 @@ class Player(pg.sprite.Sprite):
         self.update_explode_blast()
         
         
-        self.acc = [0, 0]
+        self.acc = [.0, .0]
         for d in __class__.move_dict:
+            
             if key_lst[d]:
-                self.acc[0] += self.walk_acc * self.move_dict[d][0]
+                self.acc[0] += self.walk_acc * __class__.move_dict[d][0]
+                
                 if self.is_grounded:
                     self.vel[1] = self.jump_init_vel * self.move_dict[d][1]
                     if self.vel[1] < 0:
@@ -187,15 +189,24 @@ class Player(pg.sprite.Sprite):
             self.vel[1] = vy
         
 class Block(pg.sprite.Sprite):
-    size =  (50, 50)
-
-    def __init__(self, pos: tuple[int, int]):
+    
+    __size = (100, 100)
+    def __init__(self, pos: tuple[int, int], size: tuple[int, int] = (100, 100) ):
         super().__init__()
-        self.image = pg.Surface(__class__.size)
+        self.size = size
+        self.image = pg.Surface(size)
         self.image.fill((127, 127, 127))
         self.rect = self.image.get_rect()
         self.rect.center = pos
-     
+    
+    @classmethod
+    @property
+    def size(cls) -> tuple[int, int]:
+        """
+        サイズのgetter
+        返り値: サイズのタプル
+        """
+        return cls.__size
      
             
 class Box(pg.sprite.Sprite):
@@ -362,6 +373,21 @@ class Throw_predict(pg.sprite.Sprite):
         self.vel[1] = vy
         self.vel[0] = vx
         
+def create_blocks(min_count: int, max_count: int, blocks: pg.sprite.Group):
+    """
+    ブロックを生成する関数
+    min_count: 最小ブロック数
+    max_count: 最大ブロック数
+    blocks: ブロックを追加するグループ
+    """
+    global WIDTH, HEIGHT
+    # 床
+    blocks.add(Block((VIEW_POS[0], HEIGHT), (WIDTH, 100)))
+    # 障害物
+    for i in range(random.randint(min_count, max_count)):
+        blocks.add(Block((random.randint(0, WIDTH), random.randint(0, HEIGHT)), (random.randint(50, 100), random.randint(50, 100))))
+
+        
 def main():
     pg.display.set_caption("proto")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -371,15 +397,20 @@ def main():
     global dynamic_rect_lst
     dynamic_rect_lst.append(bg_img.get_rect())
 
-    player = Player(CAMERA_POS)
+    player = Player(VIEW_POS)
+    
     
     blocks = pg.sprite.Group()
-    for i in range(-WIDTH, WIDTH):
-        blocks.add(Block((i * Block.size[0], HEIGHT)))
-    for i in range(10):
-        for j in range(10):
-            blocks.add(Block((i * 2000, HEIGHT - j * Block.size[1])))
-            blocks.add(Block((i * 2000 + Block.size[0], HEIGHT - j * Block.size[1])))
+    
+    # Blockの作成
+    create_blocks(30, 40, blocks)
+    
+    #for i in range(-WIDTH, WIDTH):
+    #    blocks.add(Block((i * Block.size[0], HEIGHT)))
+    # for i in range(10):
+    #     for j in range(10):
+    #         blocks.add(Block((i * 2000, HEIGHT - j * Block.size[1])))
+    #         blocks.add(Block((i * 2000 + Block.size[0], HEIGHT - j * Block.size[1])))
     for b in blocks:
         dynamic_rect_lst.append(b.rect)
     
@@ -392,7 +423,7 @@ def main():
         
 
         key_lst = pg.key.get_pressed()
-        
+        #print(player.is_grounded)
         player.update(key_lst)
         
                     
@@ -419,6 +450,9 @@ def main():
         #毎フレーム落下するとして初期化
         for i in Box.boxes:
             i.is_ground = False
+        for i in Bomb.bombs:
+            i.is_ground = False
+        
         
         #Boxの接地判定
         collide_lst = pg.sprite.groupcollide(Box.boxes, blocks, False,False)
@@ -557,33 +591,34 @@ def main():
         collide_lst = pg.sprite.spritecollide(player, blocks, False)
         if len(collide_lst) == 0:
             player.is_grounded = False
-        else:
-            for b in collide_lst:
-                # x方向
-                if b.rect.top - player.rect.bottom < -player.rect.height // 4 and b.rect.bottom - player.rect.top > player.rect.height // 4:
-                    if player.vel[0] < 0:
-                        gap = b.rect.right - player.rect.left
-                        for r in dynamic_rect_lst:
-                            r.x -= gap
-                        player.set_vel(0)
-                    elif player.vel[0] > 0:
-                        gap = player.rect.right - b.rect.left
-                        for r in dynamic_rect_lst:
-                            r.x += gap
-                        player.set_vel(0)
+        for b in collide_lst:
+            # x方向
+            if  player.rect.right <= b.rect.left + player.vel[0] or player.rect.left >= b.rect.right + player.vel[0]:
+                if player.vel[0] < 0:
+                    gap = b.rect.right - player.rect.left
+                    for r in dynamic_rect_lst:
+                        r.x -= gap
+                    player.set_vel(0)
+                elif player.vel[0] > 0:
+                    gap = player.rect.right - b.rect.left
+                    for r in dynamic_rect_lst:
+                        r.x += gap
+                    player.set_vel(0)
 
-                # y方向
-                if b.rect.left - player.rect.right < -player.rect.width // 4 and b.rect.right - player.rect.left > player.rect.width // 4:
-                    if player.vel[1] > 0:
-                        gap = player.rect.bottom - b.rect.top - 1
-                        for r in dynamic_rect_lst:
-                            r.y += gap
-                        player.is_grounded = True
-                    elif player.vel[1] < 0:
-                        gap = b.rect.bottom - player.rect.top
-                        for r in dynamic_rect_lst:
-                            r.y -= gap
-                    player.set_vel(vy=0)
+            # y方向
+            else:
+                #print(player.vel[1])
+                if player.vel[1] > 0:
+                    
+                    gap = player.rect.bottom - b.rect.top - 1
+                    for r in dynamic_rect_lst:
+                        r.y += gap
+                    player.is_grounded = True
+                elif player.vel[1] < 0:
+                    gap = b.rect.bottom - player.rect.top
+                    for r in dynamic_rect_lst:
+                        r.y -= gap
+                player.set_vel(vy=0)
 
         # Playerの摩擦処理
         if (player.is_grounded):
@@ -592,7 +627,46 @@ def main():
 
         
         #BoxにPlayerが乗るための接地判定
-        for b in pg.sprite.spritecollide(player, Box.boxes, False):
+        #print(player.vel[1])
+        collide_lst = pg.sprite.spritecollide(player, Box.boxes, False)
+        #if len(collide_lst) == 0:
+        #    player.is_grounded = False
+        for b in collide_lst:
+            # x方向
+            #print("collide !")
+            #print(b.rect.center)
+            if  player.rect.right <= b.rect.left + player.vel[0] or player.rect.left >= b.rect.right + player.vel[0]:
+                if player.vel[0] < 0:
+                    gap = b.rect.right - player.rect.left
+                    for r in dynamic_rect_lst:
+                        r.x -= gap
+                    player.set_vel(0)
+                elif player.vel[0] > 0:
+                    gap = player.rect.right - b.rect.left
+                    for r in dynamic_rect_lst:
+                        r.x += gap
+                    player.set_vel(0)
+
+            # y方向
+            else:
+                print(player.vel[1])
+                if player.vel[1] > 0:
+                    
+                    gap = player.rect.bottom - b.rect.top - 1
+                    for r in dynamic_rect_lst:
+                        r.y += gap
+                    player.is_grounded = True
+                elif player.vel[1] < 0:
+                    gap = b.rect.bottom - player.rect.top
+                    for r in dynamic_rect_lst:
+                        r.y -= gap
+                player.set_vel(vy=0)
+                
+        
+        # Playerの摩擦処理
+        if (player.is_grounded):
+            player.set_vel(0.9 * player.vel[0])
+        """for b in pg.sprite.spritecollide(player, Box.boxes, False):
             # x方向
             if player.rect.bottom > b.rect.centery:
                 if player.vel[0] < 0:
@@ -615,7 +689,7 @@ def main():
                 player.acc[0] *= 2
                 if abs(player.vel[1]) > 0.05:
                     player.vel[1] = 0
-                    player.is_grounded = True
+                    player.is_grounded = True"""
         
 
         screen.blit(bg_img, (0, 0))
