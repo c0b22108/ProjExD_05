@@ -37,6 +37,8 @@ class Player(pg.sprite.Sprite):
         self.curve_timer = 0
         self.my_timer = 0
         self.vel_explode = [0,0]
+        self.is_predict = False
+        self.is_pre_predict = False
         
         
         #Kodai marge
@@ -139,14 +141,21 @@ class Player(pg.sprite.Sprite):
         draw throw curve 
         """        
         
+        
+        pg.event.get()
+        #CTRLで予測線
+        if (key_lst[pg.K_RCTRL]):
+            if not self.is_pre_predict:
+                self.is_predict = not self.is_predict
+                self.is_pre_predict = True
+        else:
+            self.is_pre_predict = False
+        
         #次に投げれるようになるまでのフレーム数
         if self.my_timer - self.curve_timer < 10:
             return
         
-        
-        pg.event.get()
-        #CTRLで予測線
-        if key_lst[pg.K_RCTRL]:
+        if self.is_predict:
             self.curve_timer = self.my_timer
             throw_arg = [0,0]
             mouse_pos = list(pg.mouse.get_pos())
@@ -340,7 +349,7 @@ class Throw_predict(pg.sprite.Sprite):
         
         self.life += 1
         #自動で消えるまでの時間
-        if self.life > 180:
+        if self.life > 20:
             self.kill()
         self.vel[0] += self.acc[0]
         self.vel[1] += self.acc[1]
@@ -413,8 +422,30 @@ def main():
         #Boxの接地判定
         collide_lst = pg.sprite.groupcollide(Box.boxes, blocks, False,False)
         #print(collide_lst)
-        for i in collide_lst:
-            i.is_ground = True
+        for obj,collide_lst_2 in collide_lst.items():
+            if True:
+                for obj2 in collide_lst_2:
+                    
+                    #y軸
+                    if obj.rect.centery < obj2.rect.top and obj.vel[1] >= 0:
+                        obj.is_ground = True
+                        obj.rect.centery -= (obj.rect.bottom - obj2.rect.top)
+                        break
+                    else:
+                        pass
+                        #obj2.is_ground = False
+                        
+                    #x軸方向の当たり判定
+                    if not obj.is_ground:
+                        if obj.rect.right > obj2.rect.left and obj.vel[0] > 0:
+                            obj.rect.centerx -= (obj.rect.right - obj2.rect.left) 
+                            obj.vel[0] = 0
+                        elif obj.rect.left < obj2.rect.right and obj.vel[0] < 0:
+                            obj.rect.centerx += (obj2.rect.right - obj.rect.left)
+                            obj.vel[0] = 0
+        
+        #for i in collide_lst:
+        #    i.is_ground = True
             
         
         #Bombの接地判定
@@ -431,9 +462,10 @@ def main():
                     if not obj is obj2:
                         
                         #y軸
-                        if obj.rect.centery < obj2.rect.top :
+                        if obj.rect.centery < obj2.rect.top and obj.vel[1] > obj.vel[0]:
                             obj.is_ground = True
                             obj.rect.centery -= (obj.rect.bottom - obj2.rect.top)
+                            obj.vel[1] = 0
                             break
                         else:
                             obj2.is_ground = False
