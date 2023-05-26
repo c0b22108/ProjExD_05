@@ -6,7 +6,7 @@ WIDTH = 1024
 HEIGHT = 1024
 CAMERA_POS = (WIDTH // 2, HEIGHT - 200)
 
-nonplayer_rect_lst = []
+dynamic_rect_lst = []
 
 class Player(pg.sprite.Sprite):
     
@@ -44,7 +44,7 @@ class Player(pg.sprite.Sprite):
         self.walk_acc = 2
         self.walk_vel_max = 20
         self.jump_init_vel = 20
-        self.is_ground = False
+        self.is_grounded = False
         self.acc = [0, 0]
         self.vel = [0, 0]
 
@@ -60,12 +60,12 @@ class Player(pg.sprite.Sprite):
         for d in __class__.move_dict:
             if key_lst[d]:
                 self.acc[0] += self.walk_acc * self.move_dict[d][0]
-                if self.is_ground:
+                if self.is_grounded:
                     self.vel[1] = self.jump_init_vel * self.move_dict[d][1]
                     if self.vel[1] < 0:
-                        self.is_ground = False
+                        self.is_grounded = False
 
-        if not self.is_ground:
+        if not self.is_grounded:
             self.acc[1] += self.gravity_acc
 
         self.vel[0] += self.acc[0]
@@ -160,7 +160,7 @@ class Player(pg.sprite.Sprite):
     def update_explode_blast(self):
         self.vel[0] += self.vel_explode[0]
         self.vel[1] += self.vel_explode[1]
-        if self.is_ground:
+        if self.is_grounded:
             self.vel_explode = [0,0]
         #else:
             #if self.vel_explode != [0,0]:
@@ -170,9 +170,11 @@ class Player(pg.sprite.Sprite):
     def set_vel_explode(self,vx,vy):
         self.vel_explode = [vx,vy]
     
-    def set_vel(self, vx: float, vy: float):
-        self.vel[0] = vx
-        self.vel[1] = vy
+    def set_vel(self, vx: float = None, vy: float = None):
+        if vx is not None:
+            self.vel[0] = vx
+        if vy is not None:
+            self.vel[1] = vy
         
 class Block(pg.sprite.Sprite):
     size =  (50, 50)
@@ -192,7 +194,7 @@ class Box(pg.sprite.Sprite):
     """
     boxes = pg.sprite.Group()
     def __init__(self, pos: tuple[int, int],vel:tuple[float,float],power:float=5):
-        global nonplayer_rect_lst
+        global dynamic_rect_lst
         super().__init__()
         self.image = pg.Surface((50, 50))
         self.image.fill((0, 255, 255))
@@ -205,7 +207,7 @@ class Box(pg.sprite.Sprite):
         self.acc = [0,0]
         self.acc = [0,self.gravity_val]
         __class__.boxes.add(self)
-        nonplayer_rect_lst.append(self.rect)
+        dynamic_rect_lst.append(self.rect)
         
 
     def update(self):
@@ -241,7 +243,7 @@ class Bomb(pg.sprite.Sprite):
     """
     bombs = pg.sprite.Group()
     def __init__(self, pos: tuple[int, int],vel:tuple[float,float],power:float=5):
-        global nonplayer_rect_lst
+        global dynamic_rect_lst
         super().__init__()
         self.image = pg.Surface((30, 30))
         self.image.fill((255, 128, 0))
@@ -255,7 +257,7 @@ class Bomb(pg.sprite.Sprite):
         self.acc = [0,0]
         self.acc = [0,self.gravity_val]
         __class__.bombs.add(self)
-        nonplayer_rect_lst.append(self.rect)
+        dynamic_rect_lst.append(self.rect)
 
     def update(self):
         life_max = 180
@@ -293,7 +295,7 @@ class Explode(pg.sprite.Sprite):
     """
     explodes = pg.sprite.Group()
     def __init__(self, pos: tuple[int, int],power:float=7):
-        global nonplayer_rect_lst
+        global dynamic_rect_lst
         super().__init__()
         rad = power * 16
         self.image = pg.Surface((rad, rad))
@@ -305,7 +307,7 @@ class Explode(pg.sprite.Sprite):
         self.rect.center = pos
         self.life = 0
         __class__.explodes.add(self)
-        nonplayer_rect_lst.append(self.rect)
+        dynamic_rect_lst.append(self.rect)
 
     def update(self):
         self.life += 1
@@ -320,7 +322,7 @@ class Throw_predict(pg.sprite.Sprite):
     """
     predicts = pg.sprite.Group()
     def __init__(self, pos: tuple[int, int],vel:tuple[float,float],power:float=5):
-        global nonplayer_rect_lst
+        global dynamic_rect_lst
         super().__init__()
         self.image = pg.Surface((15, 15))
         self.image.fill((255, 200, 255))
@@ -332,7 +334,7 @@ class Throw_predict(pg.sprite.Sprite):
         self.acc = [0,0]
         self.acc = [0,self.gravity_val]
         __class__.predicts.add(self)
-        nonplayer_rect_lst.append(self.rect)
+        dynamic_rect_lst.append(self.rect)
 
     def update(self):
         
@@ -356,8 +358,8 @@ def main():
     bg_img = pg.Surface((WIDTH, HEIGHT))
     bg_img.fill((0, 0, 0))
 
-    global nonplayer_rect_lst
-    nonplayer_rect_lst.append(bg_img.get_rect())
+    global dynamic_rect_lst
+    dynamic_rect_lst.append(bg_img.get_rect())
 
     player = Player(CAMERA_POS)
     
@@ -369,7 +371,7 @@ def main():
             blocks.add(Block((i * 2000, HEIGHT - j * Block.size[1])))
             blocks.add(Block((i * 2000 + Block.size[0], HEIGHT - j * Block.size[1])))
     for b in blocks:
-        nonplayer_rect_lst.append(b.rect)
+        dynamic_rect_lst.append(b.rect)
     
     tmr = 0
     clock = pg.time.Clock()
@@ -380,7 +382,7 @@ def main():
         
 
         key_lst = pg.key.get_pressed()
-
+        
         player.update(key_lst)
         
                     
@@ -392,15 +394,15 @@ def main():
         Explode.explodes.update()
         #predict
         Throw_predict.predicts.update()
-
-        # player.is_ground = False
+        
+        #player.is_ground = False
         
         
         
         # スクロール
-        for r in nonplayer_rect_lst:
+        for r in dynamic_rect_lst:
             r.x -= int(player.vel[0])
-            if not player.is_ground:
+            if not player.is_grounded:
                 r.y -= int(player.vel[1])
 
         
@@ -427,36 +429,25 @@ def main():
             if len(collide_lst_2) > 1:
                 for obj2 in collide_lst_2:
                     if not obj is obj2:
+                        
+                        #y軸
                         if obj.rect.centery < obj2.rect.top :
                             obj.is_ground = True
                             obj.rect.centery -= (obj.rect.bottom - obj2.rect.top)
                             break
                         else:
                             obj2.is_ground = False
-                        #obj.is_ground = False
+                            
+                        #x軸方向の当たり判定
+                        if not obj.is_ground:
+                            if obj.rect.right > obj2.rect.left and obj.vel[0] > 0:
+                                obj.rect.centerx -= (obj.rect.right - obj2.rect.left) 
+                                obj.vel[0] = 0
+                            elif obj.rect.left < obj2.rect.right and obj.vel[0] < 0:
+                                obj.rect.centerx += (obj2.rect.right - obj.rect.left)
+                                obj.vel[0] = 0
         
     
-        #BoxにPlayerが乗るための接地判定
-        for b in pg.sprite.spritecollide(player, Box.boxes, False):
-            # x方向
-            if player.rect.bottom > b.rect.centery:
-                if player.vel[0] < 0:
-                    for r in nonplayer_rect_lst:
-                        r.x += int(player.vel[0])
-                    player.vel[0] = 0
-                elif player.vel[0] > 0:
-                    for r in nonplayer_rect_lst:
-                        r.x += int(player.vel[0])
-                    player.vel[0] = 0
-            # y方向
-            #if b.rect.left <= player.rect.centerx <= b.rect.right:
-            if b.rect.left <= player.rect.right and player.rect.left <= b.rect.right:
-                for r in nonplayer_rect_lst:
-                    r.y += int(player.vel[1])
-                if player.vel[1] > 0:
-                    player.is_ground = True
-                    player.vel[1] = 0
-                player.vel[0] *= 0.3
         
         """if len(collide_lst) > 0:
             for b in collide_lst:
@@ -491,30 +482,95 @@ def main():
         #予測線の接地判定
         collide_lst = pg.sprite.groupcollide(Throw_predict.predicts, blocks, True,False)
         
+        # # Playerとブロックの衝突判定
+        # collide_lst = pg.sprite.spritecollide(player, blocks, False)
+        # if len(collide_lst) == 0:
+        #     player.is_ground = False
+        #     pass
+        # else:
+        #     for b in collide_lst:
+        #         # x方向
+        #         if player.rect.bottom > b.rect.centery:
+        #             if player.vel[0] < 0:
+        #                 for r in nonplayer_rect_lst:
+        #                     r.x += int(player.vel[0])
+        #                 player.vel[0] = 0
+        #             elif player.vel[0] > 0:
+        #                 for r in nonplayer_rect_lst:
+        #                     r.x += int(player.vel[0])
+        #                 player.vel[0] = 0
+        #         # y方向
+        #         if b.rect.left <= player.rect.centerx <= b.rect.right:
+        #             for r in nonplayer_rect_lst:
+        #                 r.y += int(player.vel[1])
+        #             if player.vel[1] > 0:
+        #                 player.is_ground = True
+        #             player.vel[1] = 0
+        #             player.vel[0] *= 0.8
+
         # Playerとブロックの衝突判定
         collide_lst = pg.sprite.spritecollide(player, blocks, False)
         if len(collide_lst) == 0:
-            player.is_ground = False
+            player.is_grounded = False
         else:
             for b in collide_lst:
                 # x方向
-                if player.rect.bottom > b.rect.centery:
+                if b.rect.top - player.rect.bottom < -player.rect.height // 4 and b.rect.bottom - player.rect.top > player.rect.height // 4:
                     if player.vel[0] < 0:
-                        for r in nonplayer_rect_lst:
-                            r.x += int(player.vel[0])
-                        player.vel[0] = 0
+                        gap = b.rect.right - player.rect.left
+                        for r in dynamic_rect_lst:
+                            r.x -= gap
+                        player.set_vel(0)
                     elif player.vel[0] > 0:
-                        for r in nonplayer_rect_lst:
-                            r.x += int(player.vel[0])
-                        player.vel[0] = 0
+                        gap = player.rect.right - b.rect.left
+                        for r in dynamic_rect_lst:
+                            r.x += gap
+                        player.set_vel(0)
+
                 # y方向
-                if b.rect.left <= player.rect.centerx <= b.rect.right:
-                    for r in nonplayer_rect_lst:
-                        r.y += int(player.vel[1])
+                if b.rect.left - player.rect.right < -player.rect.width // 4 and b.rect.right - player.rect.left > player.rect.width // 4:
                     if player.vel[1] > 0:
-                        player.is_ground = True
+                        gap = player.rect.bottom - b.rect.top - 1
+                        for r in dynamic_rect_lst:
+                            r.y += gap
+                        player.is_grounded = True
+                    elif player.vel[1] < 0:
+                        gap = b.rect.bottom - player.rect.top
+                        for r in dynamic_rect_lst:
+                            r.y -= gap
+                    player.set_vel(vy=0)
+
+        # Playerの摩擦処理
+        if (player.is_grounded):
+            player.set_vel(0.9 * player.vel[0])
+            
+
+        
+        #BoxにPlayerが乗るための接地判定
+        for b in pg.sprite.spritecollide(player, Box.boxes, False):
+            # x方向
+            if player.rect.bottom > b.rect.centery:
+                if player.vel[0] < 0:
+                    for r in dynamic_rect_lst:
+                        r.x += int(player.vel[0])
+                    player.vel[0] = 0
+                elif player.vel[0] > 0:
+                    for r in dynamic_rect_lst:
+                        r.x += int(player.vel[0])
+                    player.vel[0] = 0
+            # y方向
+            #if b.rect.left <= player.rect.centerx <= b.rect.right:
+            if b.rect.left <= player.rect.right and player.rect.left <= b.rect.right:
+                for r in dynamic_rect_lst:
+                    r.y += int(player.vel[1])
+                if player.vel[1] > 0:
+                    player.is_grounded = True
                     player.vel[1] = 0
-                    player.vel[0] *= 0.8
+                player.vel[0] *= 0.3
+                if abs(player.vel[1]) > 0.05:
+                    player.vel[1] = 0
+                    player.is_grounded = True
+        
 
         screen.blit(bg_img, (0, 0))
         blocks.draw(screen)
