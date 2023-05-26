@@ -167,10 +167,11 @@ class Player(pg.sprite.Sprite):
             #Bomb(self.rect.center,tuple(throw_arg),power=2.0)
             
     def update_explode_blast(self):
-        self.vel[0] += self.vel_explode[0]
-        self.vel[1] += self.vel_explode[1]
-        if self.is_grounded:
-            self.vel_explode = [0,0]
+        pass
+        #self.vel[0] += self.vel_explode[0]
+        #self.vel[1] += self.vel_explode[1]
+        #if self.is_grounded:
+        #    self.vel_explode = [0,0]
         #else:
             #if self.vel_explode != [0,0]:
                 #self.vel_explode[1] += 1
@@ -495,7 +496,19 @@ def main():
             bomb.set_vel(0,0)
             bomb.is_ground = True
         #Bombによって召喚されたExplodeとBoxのCollide
-        collide_lst = pg.sprite.groupcollide(Explode.explodes, Box.boxes, False,True)
+        collide_lst = pg.sprite.groupcollide(Explode.explodes, Box.boxes, False,False)
+        for key,items in collide_lst.items():
+            for item in items:
+                throw_arg = [0,0]
+                item_pos = list(item.rect.center)
+                key_pos = list(key.rect.center)
+                power_border = 4
+                throw_arg[0] = -(key_pos[0] - item_pos[0])/power_border + 0.001
+                throw_arg[1] = -(key_pos[1] - item_pos[1])/power_border + 0.001
+                #print(throw_arg)
+                item.vel[0] += throw_arg[0]
+                item.vel[1] += throw_arg[1]
+        
         
         #ExplodeとPlayerの当たり判定　あたると吹っ飛ぶ
         collide_lst = pg.sprite.spritecollide(player,Explode.explodes, False,False)
@@ -598,7 +611,8 @@ def main():
                 if player.vel[1] > 0:
                     player.is_grounded = True
                     player.vel[1] = 0
-                player.vel[0] *= 0.3
+                player.vel[0] = 0
+                player.acc[0] *= 2
                 if abs(player.vel[1]) > 0.05:
                     player.vel[1] = 0
                     player.is_grounded = True
