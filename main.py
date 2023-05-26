@@ -110,7 +110,6 @@ class Player(pg.sprite.Sprite):
             player_pos = list(self.rect.center)
             throw_arg[0] = (mouse_pos[0] - player_pos[0])/15
             throw_arg[1] = (mouse_pos[1] - player_pos[1])/15
-            #print(throw_arg)
             Box((self.rect.centerx,self.rect.centery - 10),tuple(throw_arg),power=2.0)
             
             
@@ -134,7 +133,6 @@ class Player(pg.sprite.Sprite):
             player_pos = list(self.rect.center)
             throw_arg[0] = (mouse_pos[0] - player_pos[0])/15
             throw_arg[1] = (mouse_pos[1] - player_pos[1])/15
-            #print(throw_arg)
             Bomb(self.rect.center,tuple(throw_arg),power=2.0)
             
     def update_throw_predict(self,key_lst: dict):
@@ -164,20 +162,10 @@ class Player(pg.sprite.Sprite):
             player_pos = list(self.rect.center)
             throw_arg[0] = (mouse_pos[0] - player_pos[0])/15
             throw_arg[1] = (mouse_pos[1] - player_pos[1])/15
-            #print(throw_arg)
             Throw_predict(self.rect.center,tuple(throw_arg),power=2.0)
-            #Bomb(self.rect.center,tuple(throw_arg),power=2.0)
             
     def update_explode_blast(self):
         pass
-        #self.vel[0] += self.vel_explode[0]
-        #self.vel[1] += self.vel_explode[1]
-        #if self.is_grounded:
-        #    self.vel_explode = [0,0]
-        #else:
-            #if self.vel_explode != [0,0]:
-                #self.vel_explode[1] += 1
-                #print(self.vel_explode)
     
     def set_vel_explode(self,vx,vy):
         self.vel_explode = [vx,vy]
@@ -290,8 +278,6 @@ class Bomb(pg.sprite.Sprite):
             self.kill()
             
         #爆発までの時間を色で表現
-        #self.image.fill((int((255 - 255*self.life/life_max +2 )), max(0,128 - self.life),0 ))
-        #print(int(255*self.life/life_max))
         self.image.fill((255 - 128*int((self.life/life_max/120)), 128 * (1 - self.life/life_max), 255 * (self.life/life_max)**2))
         
         self.vel[0] += self.acc[0]
@@ -423,7 +409,6 @@ def main():
         
 
         key_lst = pg.key.get_pressed()
-        #print(player.is_grounded)
         player.update(key_lst)
         
                     
@@ -456,7 +441,6 @@ def main():
         
         #Boxの接地判定
         collide_lst = pg.sprite.groupcollide(Box.boxes, blocks, False,False)
-        #print(collide_lst)
         for obj,collide_lst_2 in collide_lst.items():
             if True:
                 for obj2 in collide_lst_2:
@@ -515,15 +499,6 @@ def main():
                                 obj.vel[0] = 0
         
     
-        
-        """if len(collide_lst) > 0:
-            for b in collide_lst:
-                if b.life > 60:
-                    if player.rect.top < b.rect.bottom:
-                        player.rect.top = b.rect.bottom
-                    if player.rect.bottom > b.rect.top:
-                        player.rect.bottom = b.rect.top
-                        player.is_ground = True"""
         #BombとBoxのCollide
         collide_lst = pg.sprite.groupcollide(Bomb.bombs, Box.boxes, False,False)
         for bomb in collide_lst:
@@ -539,7 +514,6 @@ def main():
                 power_border = 4
                 throw_arg[0] = -(key_pos[0] - item_pos[0])/power_border + 0.001
                 throw_arg[1] = -(key_pos[1] - item_pos[1])/power_border + 0.001
-                #print(throw_arg)
                 item.vel[0] += throw_arg[0]
                 item.vel[1] += throw_arg[1]
         
@@ -554,39 +528,12 @@ def main():
             power_border = 4
             throw_arg[0] = -(explode_pos[0] - player_pos[0])/power_border + 0.001
             throw_arg[1] = -(explode_pos[1] - player_pos[1])/power_border + 0.001
-            #print(throw_arg)
             player.vel[0] += throw_arg[0]
             player.vel[1] += throw_arg[1]
     
         #予測線の接地判定
         collide_lst = pg.sprite.groupcollide(Throw_predict.predicts, blocks, True,False)
         
-        # # Playerとブロックの衝突判定
-        # collide_lst = pg.sprite.spritecollide(player, blocks, False)
-        # if len(collide_lst) == 0:
-        #     player.is_ground = False
-        #     pass
-        # else:
-        #     for b in collide_lst:
-        #         # x方向
-        #         if player.rect.bottom > b.rect.centery:
-        #             if player.vel[0] < 0:
-        #                 for r in nonplayer_rect_lst:
-        #                     r.x += int(player.vel[0])
-        #                 player.vel[0] = 0
-        #             elif player.vel[0] > 0:
-        #                 for r in nonplayer_rect_lst:
-        #                     r.x += int(player.vel[0])
-        #                 player.vel[0] = 0
-        #         # y方向
-        #         if b.rect.left <= player.rect.centerx <= b.rect.right:
-        #             for r in nonplayer_rect_lst:
-        #                 r.y += int(player.vel[1])
-        #             if player.vel[1] > 0:
-        #                 player.is_ground = True
-        #             player.vel[1] = 0
-        #             player.vel[0] *= 0.8
-
         # Playerとブロックの衝突判定
         collide_lst = pg.sprite.spritecollide(player, blocks, False)
         if len(collide_lst) == 0:
@@ -607,7 +554,6 @@ def main():
 
             # y方向
             else:
-                #print(player.vel[1])
                 if player.vel[1] > 0:
                     
                     gap = player.rect.bottom - b.rect.top - 1
@@ -627,14 +573,9 @@ def main():
 
         
         #BoxにPlayerが乗るための接地判定
-        #print(player.vel[1])
         collide_lst = pg.sprite.spritecollide(player, Box.boxes, False)
-        #if len(collide_lst) == 0:
-        #    player.is_grounded = False
         for b in collide_lst:
             # x方向
-            #print("collide !")
-            #print(b.rect.center)
             if  player.rect.right <= b.rect.left + player.vel[0] or player.rect.left >= b.rect.right + player.vel[0]:
                 if player.vel[0] < 0:
                     gap = b.rect.right - player.rect.left
@@ -649,7 +590,6 @@ def main():
 
             # y方向
             else:
-                print(player.vel[1])
                 if player.vel[1] > 0:
                     
                     gap = player.rect.bottom - b.rect.top - 1
@@ -666,30 +606,6 @@ def main():
         # Playerの摩擦処理
         if (player.is_grounded):
             player.set_vel(0.9 * player.vel[0])
-        """for b in pg.sprite.spritecollide(player, Box.boxes, False):
-            # x方向
-            if player.rect.bottom > b.rect.centery:
-                if player.vel[0] < 0:
-                    for r in dynamic_rect_lst:
-                        r.x += int(player.vel[0])
-                    player.vel[0] = 0
-                elif player.vel[0] > 0:
-                    for r in dynamic_rect_lst:
-                        r.x += int(player.vel[0])
-                    player.vel[0] = 0
-            # y方向
-            #if b.rect.left <= player.rect.centerx <= b.rect.right:
-            if b.rect.left <= player.rect.right and player.rect.left <= b.rect.right:
-                for r in dynamic_rect_lst:
-                    r.y += int(player.vel[1])
-                if player.vel[1] > 0:
-                    player.is_grounded = True
-                    player.vel[1] = 0
-                player.vel[0] = 0
-                player.acc[0] *= 2
-                if abs(player.vel[1]) > 0.05:
-                    player.vel[1] = 0
-                    player.is_grounded = True"""
         
 
         screen.blit(bg_img, (0, 0))
