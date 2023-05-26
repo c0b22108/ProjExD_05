@@ -429,6 +429,7 @@ def main():
                     if not obj is obj2:
                         if obj.rect.centery < obj2.rect.top :
                             obj.is_ground = True
+                            obj.rect.centery -= (obj.rect.bottom - obj2.rect.top)
                             break
                         else:
                             obj2.is_ground = False
@@ -445,16 +446,17 @@ def main():
                     player.vel[0] = 0
                 elif player.vel[0] > 0:
                     for r in nonplayer_rect_lst:
-                        r.x += player.vel[0]
+                        r.x += int(player.vel[0])
                     player.vel[0] = 0
             # y方向
-            if b.rect.left <= player.rect.centerx <= b.rect.right:
+            #if b.rect.left <= player.rect.centerx <= b.rect.right:
+            if b.rect.left <= player.rect.right and player.rect.left <= b.rect.right:
                 for r in nonplayer_rect_lst:
                     r.y += int(player.vel[1])
                 if player.vel[1] > 0:
                     player.is_ground = True
-                player.vel[1] = 0
-                player.vel[0] *= 0.8
+                    player.vel[1] = 0
+                player.vel[0] *= 0.3
         
         """if len(collide_lst) > 0:
             for b in collide_lst:
