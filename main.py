@@ -2,37 +2,28 @@ import sys
 import random
 import pygame as pg
 
-WIDTH = 1024
-HEIGHT = 1024
-#CAMERA_POS = (WIDTH // 2, HEIGHT - 200)
+WIDTH = 1600
+HEIGHT = 1000
 VIEW_POS = (WIDTH // 2, HEIGHT - 200)
 dynamic_rect_lst = []
 
 class Player(pg.sprite.Sprite):
-    
-    size = (64, 64)
-    
-    move_dict = {
+    __move_dict = {
         pg.K_LEFT: (-1, 0),
         pg.K_a: (-1, 0),
         pg.K_RIGHT: (1, 0),
         pg.K_d: (1, 0),
         pg.K_UP: (0, -1),
         pg.K_SPACE: (0, -1)
-        
     }
-    
-    
 
-    def __init__(self, pos: tuple[int, int]):
+    def __init__(self, center: tuple[int, int]):
         super().__init__()
-        self.image = pg.Surface(__class__.size)
+        self.__size = (64, 64)
+        self.image = pg.Surface(self.__size)
         self.image.fill((255, 255, 255))
         self.rect = self.image.get_rect()
-        self.rect.center = pos
-        # self.gravity_vel = 5
-        # self.jump_power = 256
-        # self.is_ground = False
+        self.rect.center = center
         self.box_timer = 0
         self.curve_timer = 0
         self.my_timer = 0
@@ -42,13 +33,59 @@ class Player(pg.sprite.Sprite):
         
         
         #Kodai marge
-        self.gravity_acc = 1
-        self.walk_acc = 2
-        self.walk_vel_max = 10
-        self.jump_init_vel = 20
-        self.is_grounded = False
-        self.acc = [0, 0]
-        self.vel = [0, 0]
+        self.__gravity_acc = 1
+        self.__walk_acc = 2
+        self.__walk_vel_max = 10
+        self.__jump_init_vel = 20
+        self.__is_grounded = False
+        self.__acc = [0, 0]
+        self.__vel = [0, 0]
+
+    @property
+    def is_grounded(self) -> bool:
+        """
+        接地判定変数のgetter
+        返り値: 接地判定変数の値
+        """
+        return self.__is_grounded
+    
+    @is_grounded.setter
+    def is_grounded(self, value: bool):
+        """
+        接地判定変数のsetter
+        value: 接地判定変数の値
+        """
+        self.__is_grounded = value
+
+    @property
+    def vel(self) -> list[float, float]:
+        """
+        速度のgetter
+        返り値: 速度のリスト
+        """
+        return self.__vel.copy()
+
+    def set_vel(self, vx: float = None, vy: float = None):
+        """
+        速度のsetter
+        Noneを入れた方向は変更しない
+        vx: x方向の速度
+        vy: y方向の速度
+        """
+        if vx is not None:
+            self.__vel[0] = vx
+        if vy is not None:
+            self.__vel[1] = vy
+
+    def add_vel(self, vx: float = .0, vy: float = .0):
+        """
+        速度の加算
+        vx: x方向の加算速度
+        vy: y方向の加算速度
+        """
+        self.__vel[0] += vx
+        self.__vel[1] += vy
+
 
     def update(self, key_lst: dict):
         self.my_timer += 1
@@ -58,39 +95,28 @@ class Player(pg.sprite.Sprite):
         self.update_explode_blast()
         
         
-        self.acc = [.0, .0]
-        for d in __class__.move_dict:
-            
+        self.__acc = [.0, .0]
+        # 入力と移動方向dictに応じて加速度を設定
+        for d in __class__.__move_dict:
             if key_lst[d]:
-                self.acc[0] += self.walk_acc * __class__.move_dict[d][0]
-                
+                self.__acc[0] += self.__walk_acc * __class__.__move_dict[d][0]
+                # 接地時のみジャンプ可能
                 if self.is_grounded:
-                    self.vel[1] = self.jump_init_vel * self.move_dict[d][1]
+                    self.set_vel(vy=self.__jump_init_vel * __class__.__move_dict[d][1])
                     if self.vel[1] < 0:
                         self.is_grounded = False
 
+        # 重力加速度を加算
         if not self.is_grounded:
-            self.acc[1] += self.gravity_acc
-        self.vel[0] += self.acc[0]
-        if self.vel[0] < -self.walk_vel_max:
-            self.vel[0] = -self.walk_vel_max
-        elif self.vel[0] > self.walk_vel_max:
-            self.vel[0] = self.walk_vel_max
-        self.vel[1] += self.acc[1]
-        
-        #print(self.vel,self.is_grounded)
-        """
-        for d in __class__.move_dict:
-            if key_lst[d]:
-                self.rect.x += self.move_dict[d][0] * 3
-                if self.is_ground:
-                    self.rect.y += self.move_dict[d][1] * self.jump_power
-                    if self.move_dict[d][1] < 0:
-                        self.is_ground = False
+            self.__acc[1] += self.__gravity_acc
 
-        if not self.is_ground:
-            self.rect.y += self.gravity_vel
-"""
+        # 加速度と速度上限から速度を計算
+        self.add_vel(self.__acc[0])
+        if self.vel[0] < -self.__walk_vel_max:
+            self.set_vel(-self.__walk_vel_max)
+        elif self.vel[0] > self.__walk_vel_max:
+            self.set_vel(self.__walk_vel_max)
+        self.add_vel(vy=self.__acc[1])
     
     def update_box(self,key_lst: dict):
         """
@@ -99,7 +125,7 @@ class Player(pg.sprite.Sprite):
         """        
         
         #次に投げれるようになるまでのフレーム数
-        if self.my_timer - self.box_timer < 30:
+        if self.my_timer - self.box_timer < 10:
             return
         
         
@@ -173,21 +199,25 @@ class Player(pg.sprite.Sprite):
     
     def set_vel(self, vx: float = None, vy: float = None):
         if vx is not None:
-            self.vel[0] = vx
+            self.__vel[0] = vx
         if vy is not None:
-            self.vel[1] = vy
+            self.__vel[1] = vy
         
 class Block(pg.sprite.Sprite):
-    
-    __size = (100, 100)
-    def __init__(self, pos: tuple[int, int], size: tuple[int, int] = (100, 100) ):
+    """
+    初期生成されるブロックに関するクラス
+    """
+    # ブロックのサイズ
+    # __size = (100, 100)
+
+    def __init__(self, center: tuple[int, int], size: tuple[int, int]):
         super().__init__()
         self.size = size
         self.image = pg.Surface(size)
         self.image.fill((127, 127, 127))
         self.rect = self.image.get_rect()
-        self.rect.center = pos
-    
+        self.rect.center = center
+
     @classmethod
     @property
     def size(cls) -> tuple[int, int]:
@@ -196,7 +226,7 @@ class Block(pg.sprite.Sprite):
         返り値: サイズのタプル
         """
         return cls.__size
-     
+
             
 class Box(pg.sprite.Sprite):
     """
@@ -245,7 +275,96 @@ class Box(pg.sprite.Sprite):
         #[0,0]でないならFalse
         return not self.vel == [0,0]
     
-        
+
+class Level():
+    """
+    レベル生成と保持を担うクラス
+    """
+    def __init__(self):
+        global dynamic_rect_lst
+        self.blocks = pg.sprite.Group()
+        self.__flcl_height = 100
+        self.__ceil_y = -HEIGHT // 2
+        # self.blocks.add(Block((WIDTH // 2, 0), (WIDTH, self.__flcl_height)))
+        # self.__ceil_rct = self.blocks.sprites()[-1].rect
+        self.create_ceil((WIDTH // 2, self.__ceil_y))
+        self.blocks.add(Block((WIDTH // 2, HEIGHT), (WIDTH, self.__flcl_height)))
+        dynamic_rect_lst.append(self.blocks.sprites()[-1].rect)
+        self.__left_floor_rct = self.blocks.sprites()[-1].rect
+        self.__right_floor_rct = self.blocks.sprites()[-1].rect
+        self.min_obstacle_count = 50
+        self.max_obstacle_count = 100
+        self.min_obstacle_width = 50
+        self.min_obstacle_height = 50
+        self.max_obstacle_width = 100
+        self.max_obstacle_height = 100
+        self.min_floor_width = 100
+        self.max_floor_width = WIDTH // 2
+        self.min_hole_width = 0
+        self.max_hole_width = WIDTH // 2
+
+    def update(self):
+        global WIDTH
+        if self.__left_floor_rct.left >= -WIDTH // 2:
+            self.create_ceil((self.__left_floor_rct.left - WIDTH // 2, self.__ceil_rct.centery))
+            prev_floor_rct = self.__left_floor_rct
+            total = 0
+            while total < WIDTH:
+                offset = random.randint(self.min_hole_width, self.max_hole_width)
+                sizex = random.randint(self.min_floor_width, self.max_floor_width)
+                if total + offset + sizex >= WIDTH:
+                    sizex = WIDTH - total
+                    offset = 0
+                    total += sizex
+                else:
+                    total += offset + sizex
+                self.create_floor((self.__left_floor_rct.left - (offset + sizex // 2), self.__left_floor_rct.centery), (sizex, self.__flcl_height))
+                self.__left_floor_rct = self.blocks.sprites()[-1].rect
+            self.create_obstacles((self.__left_floor_rct.left, prev_floor_rct.left), (self.__ceil_rct.bottom, self.__left_floor_rct.top))
+        elif self.__right_floor_rct.right <= WIDTH * 3 // 2:
+            self.create_ceil((self.__right_floor_rct.right + WIDTH // 2, self.__ceil_rct.centery))
+            prev_floor_rct = self.__right_floor_rct
+            total = 0
+            while total < WIDTH:
+                offset = random.randint(self.min_hole_width, self.max_hole_width)
+                sizex = random.randint(self.min_floor_width, self.max_floor_width)
+                if total + offset + sizex >= WIDTH:
+                    sizex = WIDTH - total
+                    offset = 0
+                    total += sizex
+                else:
+                    total += offset + sizex
+                self.create_floor((self.__right_floor_rct.right + (offset + sizex // 2), self.__right_floor_rct.centery), (sizex, self.__flcl_height))
+                self.__right_floor_rct = self.blocks.sprites()[-1].rect
+            self.create_obstacles((prev_floor_rct.right, self.__right_floor_rct.right), (self.__ceil_rct.bottom, self.__right_floor_rct.top))
+
+    def create_ceil(self, ceil_center: tuple[int, int]):
+        """
+        天井を生成する関数
+        """
+        global WIDTH, dynamic_rect_lst
+        self.blocks.add(Block(ceil_center, (WIDTH, self.__flcl_height)))
+        self.__ceil_rct = self.blocks.sprites()[-1].rect
+        dynamic_rect_lst.append(self.__ceil_rct)
+        print("create")
+        print(self.__ceil_rct.left)
+
+
+    def create_floor(self, floor_center: tuple[int, int], floor_size: tuple[int, int]):
+        """
+        床を生成する関数
+        """
+        global WIDTH, dynamic_rect_lst
+        self.blocks.add(Block(floor_center, floor_size))
+        dynamic_rect_lst.append(self.blocks.sprites()[-1].rect)
+        # print("create")
+
+    def create_obstacles(self, rangex: tuple[int, int], rangey: tuple[int, int]):
+        # 障害物
+        for i in range(random.randint(self.min_obstacle_count, self.max_obstacle_count)):
+            self.blocks.add(Block((random.randint(*rangex), random.randint(*rangey)), (random.randint(self.min_obstacle_width, self.max_obstacle_width), random.randint(self.min_obstacle_height, self.max_obstacle_height))))
+            dynamic_rect_lst.append(self.blocks.sprites()[-1].rect)            
+
 
 class Bomb(pg.sprite.Sprite):
     """
@@ -360,20 +479,6 @@ class Throw_predict(pg.sprite.Sprite):
         self.vel[1] = vy
         self.vel[0] = vx
         
-def create_blocks(min_count: int, max_count: int, blocks: pg.sprite.Group):
-    """
-    ブロックを生成する関数
-    min_count: 最小ブロック数
-    max_count: 最大ブロック数
-    blocks: ブロックを追加するグループ
-    """
-    global WIDTH, HEIGHT
-    # 床
-    blocks.add(Block((VIEW_POS[0], HEIGHT), (WIDTH * 5, 100 * 2)))
-    # 障害物
-    for i in range(random.randint(min_count, max_count)):
-        blocks.add(Block((random.randint(0, WIDTH), random.randint(0, HEIGHT)), (random.randint(50, 100), random.randint(50, 100))))
-
         
 def main():
     pg.display.set_caption("proto")
@@ -385,21 +490,7 @@ def main():
     dynamic_rect_lst.append(bg_img.get_rect())
 
     player = Player(VIEW_POS)
-    
-    
-    blocks = pg.sprite.Group()
-    
-    # Blockの作成
-    create_blocks(30, 40, blocks)
-    
-    #for i in range(-WIDTH, WIDTH):
-    #    blocks.add(Block((i * Block.size[0], HEIGHT)))
-    # for i in range(10):
-    #     for j in range(10):
-    #         blocks.add(Block((i * 2000, HEIGHT - j * Block.size[1])))
-    #         blocks.add(Block((i * 2000 + Block.size[0], HEIGHT - j * Block.size[1])))
-    for b in blocks:
-        dynamic_rect_lst.append(b.rect)
+    level = Level()
     
     tmr = 0
     clock = pg.time.Clock()
@@ -409,11 +500,9 @@ def main():
                 return 0
         
 
-        #print(player.vel,player.is_grounded)
         key_lst = pg.key.get_pressed()
         player.update(key_lst)
-        #print(player.vel,player.is_grounded)
-                    
+
         #Box
         Box.boxes.update()
         #Bomb
@@ -423,6 +512,7 @@ def main():
         #predict
         Throw_predict.predicts.update()
         
+        level.update()
         
         # スクロール
         for r in dynamic_rect_lst:
@@ -439,7 +529,7 @@ def main():
         
         
         #Boxの接地判定
-        collide_lst_n = pg.sprite.groupcollide(Box.boxes, blocks, False,False)
+        collide_lst_n = pg.sprite.groupcollide(Box.boxes, level.blocks, False,False)
         for box,collide_lst in collide_lst_n.items():
             if len(collide_lst) == 0:
                 box.is_ground = False
@@ -473,23 +563,18 @@ def main():
                 box.vel[0] = (0.3 * box.vel[0])
         
         #Bombの接地判定
-        collide_lst = pg.sprite.groupcollide(Bomb.bombs, blocks, False,False)
+        collide_lst = pg.sprite.groupcollide(Bomb.bombs, level.blocks, False,False)
         for i in collide_lst:
             i.is_ground = True
         
         #Box同士の衝突判定
         collide_lst = pg.sprite.groupcollide(Box.boxes, Box.boxes, False,False)
     
-
-        covered_box = []
         for obj,collide_lst_2 in collide_lst.items():
             if len(collide_lst_2) > 1:
                 for obj2 in collide_lst_2:
-                    if not obj is obj2 and not id(obj) in covered_box:
-                        if abs(obj.rect.centerx - obj2.rect.centerx) < 0.3 and abs(obj.rect.centery - obj2.rect.centery) < 0.3:
-                            #covered_box.append(id(obj))
-                            obj2.kill()
-                            continue
+                    if not obj is obj2:
+                        
                         #y軸
                         if obj.rect.centery < obj2.rect.top : #and obj.vel[1] > abs(obj.vel[0]):
                             obj.is_ground = True
@@ -498,16 +583,16 @@ def main():
                             obj.vel[0] = 0
                             break
                         else:
-                            
-                            obj2.is_ground = False
+                            pass
+                            #obj2.is_ground = False
                             
                         #x軸方向の当たり判定
                         #print(id(obj),obj.is_ground)
                         if not obj.is_ground:
-                            if obj2.rect.centerx > obj.rect.right > obj2.rect.left and obj.vel[0] > 0 :#and abs(obj.vel[1]) > abs(obj.vel[0]):
+                            if obj2.rect.centerx > obj.rect.right > obj2.rect.left and obj.vel[0] > 0 and abs(obj.vel[1]) > abs(obj.vel[0]):
                                 obj.rect.centerx -= (obj.rect.right - obj2.rect.left) 
                                 obj.vel[0] = 0
-                            elif obj.rect.left < obj2.rect.right and obj.vel[0] < 0 :#and abs(obj.vel[1]) > abs(obj.vel[0]): #and abs(obj.vel[1]) < abs(obj.vel[0]):
+                            elif obj.rect.left < obj2.rect.right and obj.vel[0] < 0 and abs(obj.vel[1]) > abs(obj.vel[0]): #and abs(obj.vel[1]) < abs(obj.vel[0]):
                                 obj.rect.centerx += (obj2.rect.right - obj.rect.left)
                                 obj.vel[0] = 0
         
@@ -535,10 +620,10 @@ def main():
         
     
         #予測線の接地判定
-        collide_lst = pg.sprite.groupcollide(Throw_predict.predicts, blocks, True,False)
+        collide_lst = pg.sprite.groupcollide(Throw_predict.predicts, level.blocks, True,False)
         
         # Playerとブロックの衝突判定
-        collide_lst = pg.sprite.spritecollide(player, blocks, False)
+        collide_lst = pg.sprite.spritecollide(player, level.blocks, False)
         if len(collide_lst) == 0:
             player.is_grounded = False
         for b in collide_lst:
@@ -569,12 +654,12 @@ def main():
                         r.y -= gap
                 player.set_vel(vy=0)
 
-        # Playerの摩擦処理
-        if (player.is_grounded):
-            player.set_vel(0.9 * player.vel[0])
+        # # Playerの摩擦処理
+        # if (player.is_grounded):
+        #     player.set_vel(0.9 * player.vel[0])
             
         
-        #ExplodeとPlayerの当たり判定　あたると吹っ飛ぶ
+        #ExplodeとPlayerの当たり判定 あたると吹っ飛ぶ
         collide_lst = pg.sprite.spritecollide(player,Explode.explodes, False,False)
         for explode in collide_lst:
             
@@ -587,8 +672,10 @@ def main():
             throw_arg[1] = -(explode_pos[1] - player_pos[1])/power_border + 0.001
             #print(throw_arg)
             
-            player.vel[0] += throw_arg[0]
-            player.vel[1] += throw_arg[1]
+            player.add_vel(throw_arg[0],throw_arg[1])
+
+            # player.vel[0] += throw_arg[0]
+            # player.vel[1] += throw_arg[1]
             
 
         
@@ -635,11 +722,11 @@ def main():
             elif abs(player.vel[0]) < 0.001:
                 player.set_vel(vx=0)
             else:
-                player.set_vel(0.9 * player.vel[0])
+                player.set_vel(0.7 * player.vel[0])
             
 
         screen.blit(bg_img, (0, 0))
-        blocks.draw(screen)
+        level.blocks.draw(screen)
         Box.boxes.draw(screen)
         Bomb.bombs.draw((screen))
         Explode.explodes.draw((screen))
