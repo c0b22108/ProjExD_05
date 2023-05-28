@@ -480,11 +480,16 @@ def main():
         #Box同士の衝突判定
         collide_lst = pg.sprite.groupcollide(Box.boxes, Box.boxes, False,False)
     
+
+        covered_box = []
         for obj,collide_lst_2 in collide_lst.items():
             if len(collide_lst_2) > 1:
                 for obj2 in collide_lst_2:
-                    if not obj is obj2:
-                        
+                    if not obj is obj2 and not id(obj) in covered_box:
+                        if abs(obj.rect.centerx - obj2.rect.centerx) < 0.3 and abs(obj.rect.centery - obj2.rect.centery) < 0.3:
+                            #covered_box.append(id(obj))
+                            obj2.kill()
+                            continue
                         #y軸
                         if obj.rect.centery < obj2.rect.top : #and obj.vel[1] > abs(obj.vel[0]):
                             obj.is_ground = True
@@ -493,16 +498,16 @@ def main():
                             obj.vel[0] = 0
                             break
                         else:
-                            pass
-                            #obj2.is_ground = False
+                            
+                            obj2.is_ground = False
                             
                         #x軸方向の当たり判定
                         #print(id(obj),obj.is_ground)
                         if not obj.is_ground:
-                            if obj2.rect.centerx > obj.rect.right > obj2.rect.left and obj.vel[0] > 0 and abs(obj.vel[1]) > abs(obj.vel[0]):
+                            if obj2.rect.centerx > obj.rect.right > obj2.rect.left and obj.vel[0] > 0 :#and abs(obj.vel[1]) > abs(obj.vel[0]):
                                 obj.rect.centerx -= (obj.rect.right - obj2.rect.left) 
                                 obj.vel[0] = 0
-                            elif obj.rect.left < obj2.rect.right and obj.vel[0] < 0 and abs(obj.vel[1]) > abs(obj.vel[0]): #and abs(obj.vel[1]) < abs(obj.vel[0]):
+                            elif obj.rect.left < obj2.rect.right and obj.vel[0] < 0 :#and abs(obj.vel[1]) > abs(obj.vel[0]): #and abs(obj.vel[1]) < abs(obj.vel[0]):
                                 obj.rect.centerx += (obj2.rect.right - obj.rect.left)
                                 obj.vel[0] = 0
         
